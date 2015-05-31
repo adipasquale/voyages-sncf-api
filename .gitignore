@@ -1,0 +1,5 @@
+exponaute/output/images/*
+exponaute/output/*.json
+exponaute/output/*.csv
+.DS_Store
+*.pyc
