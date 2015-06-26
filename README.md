@@ -15,4 +15,4 @@ Executing
 =========
 
     $ cd voyagessncf
-    $ scrapy crawl voyagessncf
+    $ echo "" > output/output.json && scrapy crawl voyagessncf -o output/output.json -a origin_name=paris -a destination_name=amsterdam
