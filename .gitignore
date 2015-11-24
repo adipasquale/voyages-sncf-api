@@ -1,5 +1,4 @@
-exponaute/output/images/*
-exponaute/output/*.json
-exponaute/output/*.csv
+/*/output
+/*/logs
 .DS_Store
 *.pyc

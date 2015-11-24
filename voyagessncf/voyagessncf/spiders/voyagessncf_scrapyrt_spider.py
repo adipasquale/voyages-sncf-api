@@ -23,9 +23,49 @@ class VoyagesSncfSpider(scrapy.Spider):
   name = "voyagessncf"
   allowed_domains = ["voyages-sncf.mobi"]
 
-  def __init__(self, origin_name=None, destination_name=None, journey_date=None, journey_hour=None, request_id=None, *args, **kwargs):
-    super(VoyagesSncfSpider, self).__init__(**kwargs)
-    self.request_id = request_id
+  # def __init__(self, origin_name=None, destination_name=None, journey_date=None, journey_hour=None, request_id=None, *args, **kwargs):
+    # super(VoyagesSncfSpider, self).__init__(**kwargs)
+    # self.request_id = request_id
+
+    # parsed_date = datetime.datetime.strptime(journey_date, "%Y-%m-%d").date() if journey_date else datetime.date.today()
+    # if parsed_date < datetime.date.today():
+    #   raise Exception("journey_date has to be at least one hour from now")
+    # self.journey_date = parsed_date.strftime(DATE_FORMAT)
+
+    # self.journey_hour = journey_hour or datetime.datetime.now().strftime(HOUR_FORMAT)
+
+    # if not origin_name or not destination_name:
+    #   raise Exception("no origin_name or destination_name or invalid")
+    # self.origin_name = origin_name
+    # self.destination_name = destination_name
+
+    # self.travellers = {
+    #   "babies": kwargs.get("babies", 0),
+    #   "children": kwargs.get("children", 0),
+    #   "youngs": kwargs.get("youngs", 0),
+    #   "adults": kwargs.get("adults", 0),
+    #   "seniors": kwargs.get("seniors", 0),
+    # }
+    # if sum(self.travellers.values()) == 0:
+    #   self.travellers["adults"] = 1
+
+  # def modify_realtime_request(self, request):
+    # request.url = ROOT_URL
+    # request.callback = self.do_search
+    # return request
+
+  # def start_requests(self):
+  #   return [
+  #     scrapy.Request(
+  #       ROOT_URL, callback=self.do_search)
+  #   ]
+
+  def do_search(self, response):
+    journey_date = response.meta.get("journey_date")
+    journey_hour = response.meta.get("journey_hour")
+    origin_name = response.meta.get("origin_name")
+    destination_name = response.meta.get("destination_name")
+    kwargs = response.meta
 
     parsed_date = datetime.datetime.strptime(journey_date, "%Y-%m-%d").date() if journey_date else datetime.date.today()
     if parsed_date < datetime.date.today():
@@ -49,14 +89,7 @@ class VoyagesSncfSpider(scrapy.Spider):
     if sum(self.travellers.values()) == 0:
       self.travellers["adults"] = 1
 
-  def start_requests(self):
-    return [
-      scrapy.Request(
-        ROOT_URL, callback=self.do_search)
-    ]
-
-  def do_search(self, index_res):
-    submit_url = ROOT_URL + index_res.css("form::attr(action)").extract()[0]
+    submit_url = ROOT_URL + response.css("form::attr(action)").extract()[0]
     form_req = scrapy.FormRequest(
       submit_url,
       headers={
@@ -91,7 +124,7 @@ class VoyagesSncfSpider(scrapy.Spider):
     return [form_req]
 
   def next_page(self, response):
-    open_in_browser(response)
+    # open_in_browser(response)
     # inspect_response(response, self)
 
     return self.parse(response)
@@ -99,7 +132,7 @@ class VoyagesSncfSpider(scrapy.Spider):
   def parse(self, response):
     response.selector.remove_namespaces()
 
-    open_in_browser(response)
+    # open_in_browser(response)
     # inspect_response(response, self)
 
     for item in response.css(".journeysJourney"):
