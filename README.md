@@ -14,5 +14,15 @@ Local setup
 Executing
 =========
 
-    $ cd voyagessncf
-    $ echo "" > output/output.json && scrapy crawl voyagessncf -o output/output.json -a origin_name=paris -a destination_name=amsterdam
+    $ scrapyrt & watchmedo shell-command -R --command="pkill python; scrapyrt"
+
+    $ curl 'http://localhost:9080/crawl.json' -X POST -d '{
+        "request": {
+            "url": "http://voyages-sncf.mobi",
+            "meta": {
+                "origin_name": "paris",
+                "destination_name": "amsterdam"
+            }
+        },
+        "spider_name": "voyagessncf_api"
+    }' -H 'Content-Type: application/json'

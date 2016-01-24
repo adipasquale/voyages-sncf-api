@@ -23,13 +23,15 @@ class VoyagesSncfSpider(scrapy.Spider):
   name = "voyagessncf"
   allowed_domains = ["voyages-sncf.mobi"]
 
-  def __init__(self, origin_name=None, destination_name=None, journey_date=None, journey_hour=None, request_id=None, *args, **kwargs):
-    super(VoyagesSncfSpider, self).__init__(**kwargs)
-    self.request_id = request_id
+  def parse(self, response):
+    journey_date = response.meta.get("journey_date")
+    journey_hour = response.meta.get("journey_hour")
+    origin_name = response.meta.get("origin_name")
+    destination_name = response.meta.get("destination_name")
 
     parsed_date = datetime.datetime.strptime(journey_date, "%Y-%m-%d").date() if journey_date else datetime.date.today()
     if parsed_date < datetime.date.today():
-      raise Exception("journey_date has to be at least one hour from now")
+      raise Exception("journey_date cannot be in the past")
     self.journey_date = parsed_date.strftime(DATE_FORMAT)
 
     self.journey_hour = journey_hour or datetime.datetime.now().strftime(HOUR_FORMAT)
@@ -40,23 +42,16 @@ class VoyagesSncfSpider(scrapy.Spider):
     self.destination_name = destination_name
 
     self.travellers = {
-      "babies": kwargs.get("babies", 0),
-      "children": kwargs.get("children", 0),
-      "youngs": kwargs.get("youngs", 0),
-      "adults": kwargs.get("adults", 0),
-      "seniors": kwargs.get("seniors", 0),
+      "babies": response.meta.get("babies", 0),
+      "children": response.meta.get("children", 0),
+      "youngs": response.meta.get("youngs", 0),
+      "adults": response.meta.get("adults", 0),
+      "seniors": response.meta.get("seniors", 0),
     }
     if sum(self.travellers.values()) == 0:
       self.travellers["adults"] = 1
 
-  def start_requests(self):
-    return [
-      scrapy.Request(
-        ROOT_URL, callback=self.do_search)
-    ]
-
-  def do_search(self, index_res):
-    submit_url = ROOT_URL + index_res.css("form::attr(action)").extract()[0]
+    submit_url = ROOT_URL + response.css("form::attr(action)").extract()[0]
     form_req = scrapy.FormRequest(
       submit_url,
       headers={
@@ -86,20 +81,21 @@ class VoyagesSncfSpider(scrapy.Spider):
         'nbSenior': "%s" % self.travellers["seniors"],
         'back': '0',
         'modifiedODFields': '',
-      }
+      },
+      callback=self.parse_results
     )
     return [form_req]
 
   def next_page(self, response):
-    open_in_browser(response)
+    # open_in_browser(response)
     # inspect_response(response, self)
 
-    return self.parse(response)
+    return self.parse_results(response)
 
-  def parse(self, response):
+  def parse_results(self, response):
     response.selector.remove_namespaces()
 
-    open_in_browser(response)
+    # open_in_browser(response)
     # inspect_response(response, self)
 
     for item in response.css(".journeysJourney"):
@@ -127,7 +123,7 @@ class VoyagesSncfSpider(scrapy.Spider):
 
       yield offer
 
-    link_next = response.css('[style="text-align:right;"] .bk-navlink')
+    link_next = response.css('[style="text-align:right;"].bk-navlink a ')
     if link_next:
       url_next = link_next[0].xpath("@href").extract()[0]
       url_next = get_url(url_next, response)
