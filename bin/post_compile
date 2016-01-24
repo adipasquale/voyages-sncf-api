@@ -1,0 +1,2 @@
+cd /tmp/ && curl https://codeload.github.com/scrapinghub/scrapyrt/tar.gz/master | tar xz
+cd scrapyrt-master && python setup.py -q install

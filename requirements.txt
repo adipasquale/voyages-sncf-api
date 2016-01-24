@@ -1,5 +1,2 @@
-scrapy==1.0.0
-flask==0.10.1
-pymongo==3.0.2
-scrapyrt==0.9
-watchdog==0.8.3
+cffi==1.5.0
+scrapy==1.0.4
