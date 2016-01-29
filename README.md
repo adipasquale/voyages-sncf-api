@@ -21,6 +21,13 @@ or if you want livereload, run `pip install watchdog` and then :
 
     $ scrapyrt & watchmedo shell-command -R --command="pkill python; scrapyrt"
 
+Run crawl from CLI
+==================
+
+Useful for debugging, especially to use the `inspect_response` helper.
+
+    $ scrapy crawl voyagessncf -a origin_name=paris -a destination_name=amsterdam
+
 Call API
 ========
 

@@ -22,6 +22,13 @@ def get_inner_text(selector):
 class VoyagesSncfSpider(scrapy.Spider):
   name = "voyagessncf"
   allowed_domains = ["voyages-sncf.mobi"]
+  metas = {}
+
+  def __init__(self, *args, **kwargs):
+    self.metas = kwargs
+
+  def start_requests(self):
+    yield scrapy.Request("http://voyages-sncf.mobi", self.parse, meta=self.metas)
 
   def parse(self, response):
     journey_date = response.meta.get("journey_date")
@@ -100,6 +107,8 @@ class VoyagesSncfSpider(scrapy.Spider):
 
     for item in response.css(".journeysJourney"):
       offer = Offer()
+      if not item.css('.results_prix'):
+        continue
       price_full_text = get_inner_text(item.css('.results_prix')[0])
       price_text = re.search(r"([0-9]+\,?[0-9]*)", price_full_text).groups()[0]
       price_text = price_text.replace(",", ".")
