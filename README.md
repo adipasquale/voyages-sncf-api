@@ -14,12 +14,10 @@ Local setup
 Run Server
 ==========
 
+if you want livereload, run `pip install watchdog` and then :
+
     $ workon sncflol
-    $ cd voyagessncf && scrapyrt
-
-or if you want livereload, run `pip install watchdog` and then :
-
-    $ scrapyrt & watchmedo shell-command --patterns="*.py;*.cfg" -R --command="pkill python; scrapyrt"
+    $ ./bin/run_local_server
 
 Run crawl from CLI
 ==================

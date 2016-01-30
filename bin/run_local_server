@@ -1,0 +1,3 @@
+cd voyagessncf
+scrapyrt &
+watchmedo shell-command --patterns="*.py;*.cfg" -R --command="pkill python; scrapyrt"
