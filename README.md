@@ -19,7 +19,7 @@ Run Server
 
 or if you want livereload, run `pip install watchdog` and then :
 
-    $ scrapyrt & watchmedo shell-command -R --command="pkill python; scrapyrt"
+    $ scrapyrt & watchmedo shell-command --patterns="*.py;*.cfg" -R --command="pkill python; scrapyrt"
 
 Run crawl from CLI
 ==================

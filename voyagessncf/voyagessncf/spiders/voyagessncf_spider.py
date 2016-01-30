@@ -4,7 +4,9 @@ import urlparse
 from scrapy.utils.response import open_in_browser
 from scrapy.shell import inspect_response
 import re
-import datetime
+from datetime import datetime, date, time, timedelta
+import pytz
+from copy import copy
 
 ROOT_URL = "http://voyages-sncf.mobi"
 DATE_FORMAT = '%d%m'
@@ -31,32 +33,7 @@ class VoyagesSncfSpider(scrapy.Spider):
     yield scrapy.Request("http://voyages-sncf.mobi", self.parse, meta=self.metas)
 
   def parse(self, response):
-    journey_date = response.meta.get("journey_date")
-    journey_hour = response.meta.get("journey_hour")
-    origin_name = response.meta.get("origin_name")
-    destination_name = response.meta.get("destination_name")
-
-    parsed_date = datetime.datetime.strptime(journey_date, "%Y-%m-%d").date() if journey_date else datetime.date.today()
-    if parsed_date < datetime.date.today():
-      raise Exception("journey_date cannot be in the past")
-    self.journey_date = parsed_date.strftime(DATE_FORMAT)
-
-    self.journey_hour = journey_hour or datetime.datetime.now().strftime(HOUR_FORMAT)
-
-    if not origin_name or not destination_name:
-      raise Exception("no origin_name or destination_name or invalid")
-    self.origin_name = origin_name
-    self.destination_name = destination_name
-
-    self.travellers = {
-      "babies": response.meta.get("babies", 0),
-      "children": response.meta.get("children", 0),
-      "youngs": response.meta.get("youngs", 0),
-      "adults": response.meta.get("adults", 0),
-      "seniors": response.meta.get("seniors", 0),
-    }
-    if sum(self.travellers.values()) == 0:
-      self.travellers["adults"] = 1
+    self.prepare_params(response.meta)
 
     submit_url = ROOT_URL + response.css("form::attr(action)").extract()[0]
     form_req = scrapy.FormRequest(
@@ -73,11 +50,11 @@ class VoyagesSncfSpider(scrapy.Spider):
       },
       formdata={
         'originCode': '',
-        'originName': "%s" % self.origin_name.upper(),
+        'originName': "%s" % self.departure_city.upper(),
         'destinationCode': '',
-        'destinationName': "%s" % self.destination_name.upper(),
-        'outwardJourneyDate': self.journey_date,
-        'outwardJourneyHour': self.journey_hour,
+        'destinationName': "%s" % self.arrival_city.upper(),
+        'outwardJourneyDate': self.departure_date,
+        'outwardJourneyHour': self.departure_hour,
         'inwardJourneyDate': '',
         'inwardJourneyHour': '',
         'travelClass': 'SECOND',
@@ -101,6 +78,7 @@ class VoyagesSncfSpider(scrapy.Spider):
 
   def parse_results(self, response):
     response.selector.remove_namespaces()
+    tz = pytz.timezone("Europe/Paris")
 
     # open_in_browser(response)
     # inspect_response(response, self)
@@ -114,10 +92,27 @@ class VoyagesSncfSpider(scrapy.Spider):
       price_text = price_text.replace(",", ".")
       offer["price"] = float(price_text)
 
+      offer["category"] = get_inner_text(item.css('.results_category')[0])
+
       header = item.css(".bk-dv")[0]
       hours = [get_inner_text(it) for it in
                header.css('span[style="color:#E75C24;"]')]
-      offer["departure_time"], offer["arrival_time"], offer["duration"] = hours
+      offer["departure_time_readable"], offer["arrival_time_readable"], offer["duration_readable"] = hours
+
+      departure_hour, departure_minutes = [int(i) for i in offer["departure_time_readable"].split("h")]
+      arrival_hour, arrival_minutes = [int(i) for i in offer["arrival_time_readable"].split("h")]
+
+      departure_datetime = datetime.combine(self.departure_date_parsed, time(departure_hour, departure_minutes))
+      offer["departure_datetime"] = tz.localize(departure_datetime).isoformat()
+
+      arrival_date = copy(self.departure_date_parsed)
+      if arrival_hour < departure_hour:
+        arrival_date += timedelta(days=1)
+      arrival_datetime = datetime.combine(arrival_date, time(arrival_hour, arrival_minutes))
+      offer["arrival_datetime"] = tz.localize(arrival_datetime).isoformat()
+
+      hours, minutes = [int(i) for i in offer["duration_readable"].split("h")]
+      offer["duration"] = hours * 60 + minutes
 
       stations = [get_inner_text(it) for it in
                   header.xpath('span[not(@style)]')]
@@ -137,3 +132,32 @@ class VoyagesSncfSpider(scrapy.Spider):
       url_next = link_next[0].xpath("@href").extract()[0]
       url_next = get_url(url_next, response)
       yield scrapy.Request(url_next, callback=self.next_page)
+
+  def prepare_params(self, meta):
+    departure_date = meta.get("departure_date")
+    departure_hour = meta.get("departure_hour")
+    departure_city = meta.get("departure_city")
+    arrival_city = meta.get("arrival_city")
+
+    self.departure_date_parsed = datetime.strptime(departure_date, "%d/%m/%Y").date() if departure_date else date.today()
+    if self.departure_date_parsed < date.today():
+      raise Exception("departure_date cannot be in the past")
+    self.departure_date = self.departure_date_parsed.strftime(DATE_FORMAT)
+
+    self.departure_hour = departure_hour or datetime.now().strftime(HOUR_FORMAT)
+    self.departure_hour.replace(r"h$", "").replace(r"H$", "")
+
+    if not departure_city or not arrival_city:
+      raise Exception("no departure_city or arrival_city or invalid")
+    self.departure_city = departure_city
+    self.arrival_city = arrival_city
+
+    self.travellers = {
+      "babies": meta.get("babies", 0),
+      "children": meta.get("children", 0),
+      "youngs": meta.get("youngs", 0),
+      "adults": meta.get("adults", 0),
+      "seniors": meta.get("seniors", 0),
+    }
+    if sum(self.travellers.values()) == 0:
+      self.travellers["adults"] = 1
