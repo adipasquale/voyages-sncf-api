@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import scrapy
 from voyagessncf.items import Offer
 import urlparse
@@ -32,11 +35,93 @@ class VoyagesSncfSpider(scrapy.Spider):
   def start_requests(self):
     yield scrapy.Request("http://voyages-sncf.mobi", self.parse, meta=self.metas)
 
+  def get_form_request(self, url, callback, form_data_overrides={}, headers_overrides={}):
+    headers = {
+      'Bk-Ajax': 'application/xml',
+      'Origin': 'http://voyages-sncf.mobi',
+      # 'Accept-Encoding': 'gzip, deflate',
+      # 'Accept-Language': 'fr',
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': '*/*',
+      'Connection': 'keep-alive',
+    }
+    headers.update(headers_overrides)
+    form_data = {
+      'originCode': '',
+      'originName': "%s" % self.departure_city.upper(),
+      'destinationCode': '',
+      'destinationName': "%s" % self.arrival_city.upper(),
+      'outwardJourneyDate': self.departure_date,
+      'outwardJourneyHour': self.departure_hour,
+      'inwardJourneyDate': '',
+      'inwardJourneyHour': '',
+      'travelClass': 'SECOND',
+      'nbBaby': "%s" % self.travellers["babies"],
+      'nbChild': "%s" % self.travellers["children"],
+      'nbYouth': "%s" % self.travellers["youngs"],
+      'nbAdult': "%s" % self.travellers["adults"],
+      'nbSenior': "%s" % self.travellers["seniors"],
+      'back': '0',
+      'modifiedODFields': '',
+    }
+    form_data.update(form_data_overrides)
+    return scrapy.FormRequest(url, headers=headers, formdata=form_data, callback=callback)
+
   def parse(self, response):
     self.prepare_params(response.meta)
-
     submit_url = ROOT_URL + response.css("form::attr(action)").extract()[0]
-    form_req = scrapy.FormRequest(
+    if self.commercial_card:
+      return [self.get_form_request(submit_url, callback=self.more_options, form_data_overrides={"moreOptionsBtn": "+ d’options"})]
+    else:
+      return [self.get_form_request(submit_url, callback=self.parse_results)]
+
+  def more_options(self, response):
+    return [self.get_form_request(
+      "http://voyages-sncf.mobi/reservation/selectTravel.action?search=",
+      callback=self.set_commercial_card
+    )]
+
+  def set_commercial_card(self, response):
+    submit_url = "https://voyages-sncf.mobi/reservation/selectOptionsMultiple.action"
+    return [scrapy.FormRequest(
+      submit_url,
+      headers={
+        # 'Bk-Ajax': 'application/xml',
+        'Origin': 'http://voyages-sncf.mobi',
+        # 'Accept-Encoding': 'gzip, deflate',
+        # 'Accept-Language': 'fr',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        # 'Accept': '*/*',
+        'Referer': 'http://voyages-sncf.mobi/reservation/selectOptionsMultiple.action',
+        'Connection': 'keep-alive',
+      },
+      formdata={
+        'specifyAge': "false",
+        # "passengers": [
+        #   {
+        #     "ageRank": "ADULT",
+        #     "age": "",
+        #     "commercialCard": self.commercial_card,
+        #     "fidelityProgram": "",
+        #     "fidelityNumber": ""
+        #   }
+        # ],
+        "passengers.0.ageRank": "ADULT",
+        "passengers.0.age": "",
+        "passengers.0.commercialCard": self.commercial_card,
+        "passengers.0.fidelityProgram": "",
+        "passengers.0.fidelityNumber": "",
+        "promotionCode": "",
+        "submitBtn": "Continuer"
+      },
+      callback=self.parse_results
+    )]
+
+  def submit_search_form(self, response):
+    # inspect_response(response, self)
+    # open_in_browser(response)
+    submit_url = ROOT_URL + response.css("form::attr(action)").extract()[0]
+    return [scrapy.FormRequest(
       submit_url,
       headers={
         'Bk-Ajax': 'application/xml',
@@ -67,8 +152,7 @@ class VoyagesSncfSpider(scrapy.Spider):
         'modifiedODFields': '',
       },
       callback=self.parse_results
-    )
-    return [form_req]
+    )]
 
   def next_page(self, response):
     # open_in_browser(response)
@@ -161,3 +245,5 @@ class VoyagesSncfSpider(scrapy.Spider):
     }
     if sum(self.travellers.values()) == 0:
       self.travellers["adults"] = 1
+
+    self.commercial_card = meta.get("commercial_card")
