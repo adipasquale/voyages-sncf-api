@@ -6,8 +6,8 @@ a scrapyrt API to retrieve data from voyages-sncf website
 Local setup
 ===========
 
-    $ mkvirtualenv sncflol
-    $ workon sncflol
+    $ mkvirtualenv sncfweekendapi
+    $ workon sncfweekendapi
     $ pip install -r requirements.txt
     $ ./bin/post_compile  # to install scrapyrt
 
@@ -16,7 +16,7 @@ Run Server
 
 if you want livereload, run `pip install watchdog` and then :
 
-    $ workon sncflol
+    $ workon sncfweekendapi
     $ ./bin/run_local_server
 
 Run crawl from CLI
@@ -24,7 +24,8 @@ Run crawl from CLI
 
 Useful for debugging, especially to use the `inspect_response` helper.
 
-    $ scrapy crawl voyagessncf -a origin_name=paris -a destination_name=amsterdam
+    $ cd voyagessncf
+    $ scrapy crawl voyagessncf -a departure_city=paris -a arrival_city=avignon -a departure_date="01/04/2016" -a departure_hour="18h"
 
 Call API
 ========

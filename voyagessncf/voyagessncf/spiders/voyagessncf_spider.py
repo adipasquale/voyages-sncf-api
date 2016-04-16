@@ -35,91 +35,8 @@ class VoyagesSncfSpider(scrapy.Spider):
   def start_requests(self):
     yield scrapy.Request("http://voyages-sncf.mobi", self.parse, meta=self.metas)
 
-  def get_form_request(self, url, callback, form_data_overrides={}, headers_overrides={}):
-    headers = {
-      'Bk-Ajax': 'application/xml',
-      'Origin': 'http://voyages-sncf.mobi',
-      # 'Accept-Encoding': 'gzip, deflate',
-      # 'Accept-Language': 'fr',
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': '*/*',
-      'Connection': 'keep-alive',
-    }
-    headers.update(headers_overrides)
-    form_data = {
-      'originCode': '',
-      'originName': "%s" % self.departure_city.upper(),
-      'destinationCode': '',
-      'destinationName': "%s" % self.arrival_city.upper(),
-      'outwardJourneyDate': self.departure_date,
-      'outwardJourneyHour': self.departure_hour,
-      'inwardJourneyDate': '',
-      'inwardJourneyHour': '',
-      'travelClass': 'SECOND',
-      'nbBaby': "%s" % self.travellers["babies"],
-      'nbChild': "%s" % self.travellers["children"],
-      'nbYouth': "%s" % self.travellers["youngs"],
-      'nbAdult': "%s" % self.travellers["adults"],
-      'nbSenior': "%s" % self.travellers["seniors"],
-      'back': '0',
-      'modifiedODFields': '',
-    }
-    form_data.update(form_data_overrides)
-    return scrapy.FormRequest(url, headers=headers, formdata=form_data, callback=callback)
-
   def parse(self, response):
     self.prepare_params(response.meta)
-    submit_url = ROOT_URL + response.css("form::attr(action)").extract()[0]
-    if self.commercial_card:
-      return [self.get_form_request(submit_url, callback=self.more_options, form_data_overrides={"moreOptionsBtn": "+ d’options"})]
-    else:
-      return [self.get_form_request(submit_url, callback=self.parse_results)]
-
-  def more_options(self, response):
-    return [self.get_form_request(
-      "http://voyages-sncf.mobi/reservation/selectTravel.action?search=",
-      callback=self.set_commercial_card
-    )]
-
-  def set_commercial_card(self, response):
-    submit_url = "https://voyages-sncf.mobi/reservation/selectOptionsMultiple.action"
-    return [scrapy.FormRequest(
-      submit_url,
-      headers={
-        # 'Bk-Ajax': 'application/xml',
-        'Origin': 'http://voyages-sncf.mobi',
-        # 'Accept-Encoding': 'gzip, deflate',
-        # 'Accept-Language': 'fr',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        # 'Accept': '*/*',
-        'Referer': 'http://voyages-sncf.mobi/reservation/selectOptionsMultiple.action',
-        'Connection': 'keep-alive',
-      },
-      formdata={
-        'specifyAge': "false",
-        # "passengers": [
-        #   {
-        #     "ageRank": "ADULT",
-        #     "age": "",
-        #     "commercialCard": self.commercial_card,
-        #     "fidelityProgram": "",
-        #     "fidelityNumber": ""
-        #   }
-        # ],
-        "passengers.0.ageRank": "ADULT",
-        "passengers.0.age": "",
-        "passengers.0.commercialCard": self.commercial_card,
-        "passengers.0.fidelityProgram": "",
-        "passengers.0.fidelityNumber": "",
-        "promotionCode": "",
-        "submitBtn": "Continuer"
-      },
-      callback=self.parse_results
-    )]
-
-  def submit_search_form(self, response):
-    # inspect_response(response, self)
-    # open_in_browser(response)
     submit_url = ROOT_URL + response.css("form::attr(action)").extract()[0]
     return [scrapy.FormRequest(
       submit_url,
@@ -143,13 +60,11 @@ class VoyagesSncfSpider(scrapy.Spider):
         'inwardJourneyDate': '',
         'inwardJourneyHour': '',
         'travelClass': 'SECOND',
-        'nbBaby': "%s" % self.travellers["babies"],
-        'nbChild': "%s" % self.travellers["children"],
-        'nbYouth': "%s" % self.travellers["youngs"],
-        'nbAdult': "%s" % self.travellers["adults"],
-        'nbSenior': "%s" % self.travellers["seniors"],
-        'back': '0',
-        'modifiedODFields': '',
+        "passengers.0.ageRank": "ADULT",
+        "passengers.0.age": "",
+        "passengers.0.commercialCard": self.commercial_card,
+        "passengers.0.fidelityProgram": "",
+        "passengers.0.fidelityNumber": "",
       },
       callback=self.parse_results
     )]
@@ -167,21 +82,18 @@ class VoyagesSncfSpider(scrapy.Spider):
     # open_in_browser(response)
     # inspect_response(response, self)
 
-    for item in response.css(".journeysJourney"):
+    for item in response.css(".journey"):
       offer = Offer()
-      if not item.css('.results_prix'):
+      if not item.css('.price b'):
         continue
-      price_full_text = get_inner_text(item.css('.results_prix')[0])
+      price_full_text = get_inner_text(item.css('.price b')[0]).replace("\n", "")
       price_text = re.search(r"([0-9]+\,?[0-9]*)", price_full_text).groups()[0]
       price_text = price_text.replace(",", ".")
       offer["price"] = float(price_text)
 
-      offer["category"] = get_inner_text(item.css('.results_category')[0])
-
-      header = item.css(".bk-dv")[0]
-      hours = [get_inner_text(it) for it in
-               header.css('span[style="color:#E75C24;"]')]
-      offer["departure_time_readable"], offer["arrival_time_readable"], offer["duration_readable"] = hours
+      offer["departure_time_readable"] = get_inner_text(item.css(".departure .time")[0])
+      offer["arrival_time_readable"] = get_inner_text(item.css(".arrival .time")[0])
+      offer["duration_readable"] = get_inner_text(item.css(".journeyDuration")[0])
 
       departure_hour, departure_minutes = [int(i) for i in offer["departure_time_readable"].split("h")]
       arrival_hour, arrival_minutes = [int(i) for i in offer["arrival_time_readable"].split("h")]
@@ -198,12 +110,13 @@ class VoyagesSncfSpider(scrapy.Spider):
       hours, minutes = [int(i) for i in offer["duration_readable"].split("h")]
       offer["duration"] = hours * 60 + minutes
 
-      stations = [get_inner_text(it) for it in
-                  header.xpath('span[not(@style)]')]
-      offer["departure_station"], offer["arrival_station"] = stations
+      offer["departure_station"] = get_inner_text(item.css(".departure .station")[0])
+      offer["arrival_station"] = get_inner_text(item.css(".arrival .station")[0])
 
-      changes_full_text = get_inner_text(header.xpath('span[contains(text(), "chgt")]'))
-      if changes_full_text:
+      changes_full_text = get_inner_text(item.css(".journeyDetailContainer i")[0])
+      if changes_full_text.lower() == "direct":
+        offer["changes"] = 0
+      elif changes_full_text:
         changes_text = re.search(r"([0-9]{1})", changes_full_text).groups()[0]
         offer["changes"] = int(changes_text)
       else:
@@ -211,7 +124,7 @@ class VoyagesSncfSpider(scrapy.Spider):
 
       yield offer
 
-    link_next = response.css('[style="text-align:right;"].bk-navlink a ')
+    link_next = response.css('[style="text-align:right;"].bk-navlink a')
     if link_next:
       url_next = link_next[0].xpath("@href").extract()[0]
       url_next = get_url(url_next, response)
@@ -246,4 +159,4 @@ class VoyagesSncfSpider(scrapy.Spider):
     if sum(self.travellers.values()) == 0:
       self.travellers["adults"] = 1
 
-    self.commercial_card = meta.get("commercial_card")
+    self.commercial_card = meta.get("commercial_card") or "NO_CARD"
