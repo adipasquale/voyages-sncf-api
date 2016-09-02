@@ -1,22 +1,28 @@
 sncf.lol
 ========
 
-a scrapyrt API to retrieve data from voyages-sncf website
+a scrapyrt API to retrieve data from voyages-sncf.mobi website
 
 Local setup
 ===========
 
-    $ mkvirtualenv sncfweekendapi
-    $ workon sncfweekendapi
+    $ mkvirtualenv sncflolapi
+    $ workon sncflolapi
     $ pip install -r requirements.txt
-    $ ./bin/post_compile  # to install scrapyrt
+
+If you run into problems with the `cryptography` package on a osx machine, run this:
+
+    $ brew install pkg-config libffi openssl
+    $ env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography
+
+(cf this [SO thread](http://stackoverflow.com/questions/22073516/failed-to-install-python-cryptography-package-with-pip-and-setup-py))
 
 Run Server
 ==========
 
 if you want livereload, run `pip install watchdog` and then :
 
-    $ workon sncfweekendapi
+    $ workon sncflolapi
     $ ./bin/run_local_server
 
 Run crawl from CLI
@@ -34,10 +40,12 @@ Call API
         "request": {
             "url": "http://voyages-sncf.mobi",
             "meta": {
-                "origin_name": "paris",
-                "destination_name": "amsterdam"
+                "departure_city": "paris",
+                "arrival_city": "nice",
+                "departure_date": "10/10/2016",
+                "departure_hour": "14"
             }
         },
-        "spider_name": "voyagessncf_api"
+        "spider_name": "voyagessncf"
     }' -H 'Content-Type: application/json'
 
