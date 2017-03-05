@@ -24,8 +24,8 @@ def get_inner_text(selector):
   return "\n".join(selector.xpath("text()").extract() + selector.xpath(".//*/text()").extract()).strip()
 
 
-class VoyagesSncfSpider(scrapy.Spider):
-  name = "voyagessncf"
+class VoyagesSncfMobiSpider(scrapy.Spider):
+  name = "voyagessncf_mobi"
   allowed_domains = ["voyages-sncf.mobi"]
   metas = {}
 

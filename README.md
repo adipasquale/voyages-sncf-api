@@ -31,7 +31,11 @@ Run crawl from CLI
 Useful for debugging, especially to use the `inspect_response` helper.
 
     $ cd voyagessncf
-    $ scrapy crawl voyagessncf -a departure_city=paris -a arrival_city=avignon -a departure_date="01/04/2016" -a departure_hour="18h"
+    $ scrapy crawl voyagessncf_mobi -a departure_city=paris -a arrival_city=avignon -a departure_date="01/04/2016" -a departure_hour="18h"
+
+or
+
+    $ scrapy crawl voyagessncf_com -a departure_city=paris -a arrival_city=avignon -a departure_date="10/03/2017" -a departure_hour="8"
 
 Call API
 ========
@@ -46,6 +50,6 @@ Call API
                 "departure_hour": "14"
             }
         },
-        "spider_name": "voyagessncf"
+        "spider_name": "voyagessncf_mobi"
     }' -H 'Content-Type: application/json'
 

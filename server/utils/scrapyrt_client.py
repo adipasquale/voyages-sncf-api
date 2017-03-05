@@ -22,7 +22,7 @@ class ScrapyRTClient(object):
           "departure_hour": "18"
         }
       },
-      "spider_name": "voyagessncf"
+      "spider_name": "voyagessncf_mobi"
     })
 
     return r.json()["items"]
