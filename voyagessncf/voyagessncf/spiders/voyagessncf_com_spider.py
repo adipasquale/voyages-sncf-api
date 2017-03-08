@@ -13,6 +13,7 @@ import urllib
 import json
 import demjson
 import dateutil.parser
+# from copy import copy
 
 
 class VoyagesSncfComSpider(scrapy.Spider):
@@ -70,9 +71,9 @@ class VoyagesSncfComSpider(scrapy.Spider):
 
       departure_datetime = dateutil.parser.parse(r["departureDate"])
       arrival_datetime = dateutil.parser.parse(r["arrivalDate"])
-      p = r
       offer = Offer()
-      offer["price"] = p["priceProposals"]["SEMIFLEX"]["amount"]
+      offer["price"] = r["priceProposals"]["SEMIFLEX"]["amount"]
+      offer["remaining_seats"] = r["priceProposals"]["SEMIFLEX"]["remainingSeat"]
 
       offer["departure_datetime"] = departure_datetime
       offer["departure_time_readable"] = departure_datetime.strftime("%H:%M")
@@ -83,6 +84,8 @@ class VoyagesSncfComSpider(scrapy.Spider):
       offer["departure_station_code"] = r["originCode"]
       offer["arrival_station"] = r["destination"]
       offer["arrival_station_code"] = r["destinationCode"]
+
+      # offer["original"] = copy(r)
 
       if len(r["segments"]) == 1:
         minutes_total = r["segments"][0]["duration"] / 1000 / 60

@@ -14,3 +14,5 @@ class Offer(scrapy.Item):
   duration_readable = scrapy.Field()
   duration = scrapy.Field()
   changes = scrapy.Field()
+  remaining_seats = scrapy.Field()
+  original = scrapy.Field()
