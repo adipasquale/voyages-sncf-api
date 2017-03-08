@@ -40,16 +40,5 @@ or
 Call API
 ========
 
-    $ curl 'http://localhost:9080/crawl.json' -X POST -d '{
-        "request": {
-            "url": "http://voyages-sncf.mobi",
-            "meta": {
-                "departure_city": "paris",
-                "arrival_city": "nice",
-                "departure_date": "10/10/2016",
-                "departure_hour": "14"
-            }
-        },
-        "spider_name": "voyagessncf_mobi"
-    }' -H 'Content-Type: application/json'
+    $ curl "http://localhost:9080/crawl.json?spider_name=voyagessncf_com&url=http%3A%2F%2Fwww.voyages-sncf.com&departure_date=10%2F03%2F2017&departure_city=paris&arrival_city=rennes&departure_hour=8"
 

@@ -35,14 +35,12 @@ class VoyagesSncfComSpider(scrapy.Spider):
     yield scrapy.Request(url)
 
   def modify_realtime_request(self, request):
-    print("HEEEERE")
     # entry point for scrapyrt API calls
     get_params = self.build_get_params(request.meta)
     url = "%s?%s" % (self.ROOT_URL, urllib.urlencode(get_params))
     return scrapy.Request(url)
 
   def parse(self, response):
-    print("PARSING")
     # this is the callback to the ROOT_URL response : the please wait page
     url_query_string = urlparse.urlparse(response.url).query
     parsed_query = urlparse.parse_qs(url_query_string)
