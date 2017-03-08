@@ -112,12 +112,12 @@ class VoyagesSncfComSpider(scrapy.Spider):
       'INWARD_TIME': '',
       'COMFORT_CLASS': '2',
       'DISTRIBUTED_COUNTRY': 'FR',
-      'PASSENGER_1': '100005891953',
-      'PASSENGER_1_CARD': 'HAPPY_CARD',
+      'PASSENGER_1': '100005891954',
+      'PASSENGER_1_CARD': params.get("card"),
       'PASSENGER_1_FID_PROG': '',
       'PASSENGER_1FID_NUM_BEGIN': '',
       'CODE_PROMO_1': '',
-      'PASSENGER_1_CARD_NUMBER': 'HC000143146',
-      'PASSENGER_1_CARD_BIRTH_DATE': '17/07/1990',
+      'PASSENGER_1_CARD_NUMBER': params.get("card_number"),
+      'PASSENGER_1_CARD_BIRTH_DATE': params.get("birth_date"),
       'action:searchTravelLaunchTrain': 'Rechercher'
     }

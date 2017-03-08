@@ -40,5 +40,5 @@ or
 Call API
 ========
 
-    $ curl "http://localhost:9080/crawl.json?spider_name=voyagessncf_com&url=http%3A%2F%2Fwww.voyages-sncf.com&departure_date=10%2F03%2F2017&departure_city=paris&arrival_city=rennes&departure_hour=8"
+    $ curl "http://localhost:9080/crawl.json?departure_date=10%2F03%2F2017&departure_city=paris&arrival_city=rennes&departure_hour=8&spider_name=voyagessncf_com&url=http%3A%2F%2Fwww.voyages-sncf.com"
 
