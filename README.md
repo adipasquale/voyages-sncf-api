@@ -40,5 +40,9 @@ or
 Call API
 ========
 
-    $ curl "http://localhost:9080/crawl.json?departure_date=10%2F03%2F2017&departure_city=paris&arrival_city=rennes&departure_hour=8&spider_name=voyagessncf_com&url=http%3A%2F%2Fwww.voyages-sncf.com"
+    $ brew install httpie
+    $ http "http://localhost:9080/crawl.json" departure_city==marseille arrival_city==paris departure_date=="22/03/2017" card==TGVMAX precise_departure_time=="06h11" price_below==80
 
+    or with raw curl :
+
+    $ curl "http://localhost:9080/crawl.json?departure_date=11%2F03%2F2017&departure_city=paris&arrival_city=rennes&departure_hour=8&card=TGVMAX"

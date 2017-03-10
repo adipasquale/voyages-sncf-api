@@ -20,6 +20,7 @@ class VoyagesSncfComSpider(scrapy.Spider):
   name = "voyagessncf_com"
   allowed_domains = ["voyages-sncf.com"]
   command_line_args = {}
+  params = {}
   custom_settings = {
     'COOKIES_ENABLED': True
   }
@@ -31,14 +32,14 @@ class VoyagesSncfComSpider(scrapy.Spider):
 
   def start_requests(self):
     # entry point 2/2 for CLI calls `scrapy crawl`
-    get_params = self.build_get_params(self.command_line_args)
-    url = "%s?%s" % (self.ROOT_URL, urllib.urlencode(get_params))
+    self.params = self.parse_params(self.command_line_args)
+    url = "%s?%s" % (self.ROOT_URL, urllib.urlencode(self.build_get_params()))
     yield scrapy.Request(url)
 
   def modify_realtime_request(self, request):
     # entry point for scrapyrt API calls
-    get_params = self.build_get_params(request.meta)
-    url = "%s?%s" % (self.ROOT_URL, urllib.urlencode(get_params))
+    self.params = self.parse_params(request.meta)
+    url = "%s?%s" % (self.ROOT_URL, urllib.urlencode(self.build_get_params()))
     return scrapy.Request(url)
 
   def parse(self, response):
@@ -69,12 +70,15 @@ class VoyagesSncfComSpider(scrapy.Spider):
       if r["pushProposal"]:
         continue  # filter out bus
 
-      departure_datetime = dateutil.parser.parse(r["departureDate"])
+      if self.params.get("card") == "HAPPY_CARD" and "SEMIFLEX" not in r["priceProposals"]:
+        continue  # filter out lines without a 'modifiable' price
+
       arrival_datetime = dateutil.parser.parse(r["arrivalDate"])
       offer = Offer()
       offer["price"] = r["priceProposals"]["SEMIFLEX"]["amount"]
       offer["remaining_seats"] = r["priceProposals"]["SEMIFLEX"]["remainingSeat"]
 
+      departure_datetime = dateutil.parser.parse(r["departureDate"])
       offer["departure_datetime"] = departure_datetime
       offer["departure_time_readable"] = departure_datetime.strftime("%H:%M")
       offer["arrival_datetime"] = arrival_datetime
@@ -95,32 +99,63 @@ class VoyagesSncfComSpider(scrapy.Spider):
         offer["duration_readable"] = "%sh%s" % (hours, minutes)
         offer["duration"] = minutes_total
 
+      if self.params.get("departure_hour") and departure_datetime.hour < int(self.params["departure_hour"]):
+        continue
+        # voyages-sncf always takes 1H less than you ask, and it returns all the times
+        # of the day when there's no results after you hour
+
+      if self.params.get("precise_departure_time") and \
+         self.params["precise_departure_time"].upper().replace("H",":") != departure_datetime.strftime("%H:%M"):
+          continue
+
+      if "price_below" in self.params and offer["price"] > self.params["price_below"]:
+        continue
+
       yield offer
 
-  def build_get_params(self, params):
+  def parse_params(self, params):
+    if params.get("departure_date") == datetime.now().strftime("%d/%m/%Y"):
+      params.setdefault("departure_hour", datetime.now().hour)
+    else:
+      params.setdefault("departure_hour", 6)
+
+    if params.get("card") == "TGV_MAX" or params.get("card") == "TGVMAX":
+      params["card"] = "HAPPY_CARD"
+
+    if params.get("card") == "HAPPY_CARD":
+      params.setdefault("card_number", "HC600069953")
+      params.setdefault("birth_date", "14/03/1991")
+
+    for p in ["departure_hour", "price_below"]:
+      if p in params:
+        params[p] = int(params[p])
+
+    return params
+
+  def build_get_params(self):
     return {
       '_LANG': 'fr',
       'ORIGIN_CITY_CHECK': '',
       'ORIGIN_CITY_RR_CODE': '',
-      'ORIGIN_CITY': params.get("departure_city"),
+      'ORIGIN_CITY': self.params.get("departure_city"),
 
       'DESTINATION_CITY_CHECK': '',
-      'DESTINATION_CITY': params.get("arrival_city"),
+      'DESTINATION_CITY': self.params.get("arrival_city"),
       'DESTINATION_CITY_RR_CODE': '',
 
       'OUTWARD_SCHEDULE_TYPE': 'DEPARTURE_FROM',
-      'OUTWARD_DATE': params.get("departure_date"),
-      'OUTWARD_TIME': params.get("departure_hour"),
+      'OUTWARD_DATE': self.params.get("departure_date"),
+      'OUTWARD_TIME': self.params.get("departure_hour") + 1,
       'INWARD_DATE': '',
       'INWARD_TIME': '',
       'COMFORT_CLASS': '2',
       'DISTRIBUTED_COUNTRY': 'FR',
-      'PASSENGER_1': '100005891954',
-      'PASSENGER_1_CARD': params.get("card"),
+      'PASSENGER_1': '100005891955',
+      'PASSENGER_1_CARD': self.params.get("card"),
       'PASSENGER_1_FID_PROG': '',
       'PASSENGER_1FID_NUM_BEGIN': '',
       'CODE_PROMO_1': '',
-      'PASSENGER_1_CARD_NUMBER': params.get("card_number"),
-      'PASSENGER_1_CARD_BIRTH_DATE': params.get("birth_date"),
+      'PASSENGER_1_CARD_NUMBER': self.params.get("card_number"),
+      'PASSENGER_1_CARD_BIRTH_DATE': self.params.get("birth_date"),
       'action:searchTravelLaunchTrain': 'Rechercher'
     }

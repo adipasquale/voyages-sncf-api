@@ -19,3 +19,5 @@ DEFAULT_REQUEST_HEADERS = {
 
 MONGO_URI = "localhost:27017"
 MONGO_DATABASE = "offers"
+
+DEFAULT_SPIDER_NAME = "voyagessncf_com"
