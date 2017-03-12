@@ -21,3 +21,7 @@ MONGO_URI = "localhost:27017"
 MONGO_DATABASE = "offers"
 
 DEFAULT_SPIDER_NAME = "voyagessncf_com"
+
+SPIDER_MIDDLEWARES = {
+  # "voyagessncf.middlewares.LogExceptionsMiddleware": 100
+}

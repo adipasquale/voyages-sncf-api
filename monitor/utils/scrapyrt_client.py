@@ -1,5 +1,10 @@
 import requests
 import os
+from bug_tracker import BugTracker
+import sys
+
+class CrawlError(Exception):
+  pass
 
 
 class ScrapyRTClient(object):
@@ -23,4 +28,10 @@ class ScrapyRTClient(object):
       }
     )
 
-    return r.json()["items"]
+    res = r.json()
+
+    if res.get("errors"):
+      BugTracker().handle_exception(CrawlError, res["errors"][0])
+      sys.exit("got CrawlError")
+
+    return res["items"]

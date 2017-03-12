@@ -6,3 +6,4 @@ python-dateutil==2.6.0
 airtable==0.3.1
 schedule==0.4.2
 nexmo==1.4.0
+raven==6.0.0

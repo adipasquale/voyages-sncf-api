@@ -62,6 +62,7 @@ class Agent(object):
       phone_number = re.sub(Agent.phone_regexes["+"], "", phone_number)
 
       if os.environ.get("SMS_ENABLED"):
+        print("sending SMS '%s' to %s ..." % (text, phone_number))
         self.notifier.notify(phone_number, text)
       else:
         print("would have sent SMS '%s' to %s" % (text, phone_number))
