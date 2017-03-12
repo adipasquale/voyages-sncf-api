@@ -10,7 +10,7 @@ from utils.bug_tracker import BugTracker
 
 agent = Agent()
 
-schedule.every(5).seconds.do(agent.check_all_tickets)
+schedule.every(1).minutes.do(agent.check_all_tickets)
 
 time.sleep(5)  # initial sleep so scrapyrt wakes up
 
