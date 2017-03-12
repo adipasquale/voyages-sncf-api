@@ -1,9 +1,10 @@
 #!/usr/local/bin/python
 
-import datetime
+from datetime import datetime
 from airtable import airtable
 from utils.scrapyrt_client import ScrapyRTClient
 from utils.notifier import Notifier
+import pytz
 import os
 import locale
 import re
@@ -13,6 +14,7 @@ locale.setlocale(locale.LC_TIME, os.environ["TIME_LOCALE"])
 class Agent(object):
 
   phone_regexes = {"0": re.compile(r"^0"), "+": re.compile(r"^\+")}
+  TZ = pytz.timezone("Europe/Paris")
 
   def __init__(self):
     self.airtable_client = airtable.Airtable(
@@ -39,11 +41,23 @@ class Agent(object):
   def check_ticket(self, ticket_record, user_record):
     ticket = ticket_record["fields"]
     user = user_record["fields"]
-    departure_date = datetime.datetime.strptime(ticket["departure_date"], "%Y-%m-%d")
+    departure_datetime = datetime.strptime(
+      "%s-%s" % (ticket["departure_date"], ticket["precise_departure_time"]),
+      "%Y-%m-%d-%H:%M"
+    )
+    departure_datetime = Agent.TZ.localize(departure_datetime)
+
+    if departure_datetime <= datetime.now(Agent.TZ):
+      print "marking ticket not_found because departure is in the past (%s < %s)" % (
+        departure_datetime.strftime("%H:%M"), datetime.now(Agent.TZ).strftime("%H:%M")
+      )
+      self.update_ticket(ticket_record, {"state": "not_found"})
+      return
+
     results = ScrapyRTClient.get_rides(
       departure_city=ticket["departure_city"],
       arrival_city=ticket["arrival_city"],
-      departure_date=departure_date,
+      departure_date=departure_datetime,
       precise_departure_time=ticket["precise_departure_time"],
       price_below=ticket["price_below"],
       card=user["card"]
@@ -53,7 +67,7 @@ class Agent(object):
       text = "%s -> %s le %s a %s dispo pour moins de %s euros !" % (
         ticket["departure_city"],
         ticket["arrival_city"],
-        departure_date.strftime("%A %d/%m").lower(),
+        departure_datetime.strftime("%A %d/%m").lower(),
         ticket["precise_departure_time"],
         ticket["price_below"],
       )
@@ -67,17 +81,19 @@ class Agent(object):
       else:
         print("would have sent SMS '%s' to %s" % (text, phone_number))
 
-      res = self.airtable_client.update(
-        os.environ["AIRTABLE_TABLE_NAME_MONITORED"],
-        str(ticket_record["id"]),
-        {
-          "state": "found",
-          "found_at": datetime.datetime.now().isoformat()
-        }
-      )
-      if res.get("error"):
-        raise Exception("could not update ticket_record")
+      self.update_ticket(ticket_record, {
+        "state": "found",
+        "found_at": datetime.now(Agent.TZ).isoformat()
+      })
 
+  def update_ticket(self, ticket_record, updates):
+    res = self.airtable_client.update(
+      os.environ["AIRTABLE_TABLE_NAME_MONITORED"],
+      str(ticket_record["id"]),
+      updates
+    )
+    if res.get("error"):
+      raise Exception("could not update ticket_record")
 
 
 if __name__ == '__main__':
