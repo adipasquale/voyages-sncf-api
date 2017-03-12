@@ -32,6 +32,7 @@ class ScrapyRTClient(object):
 
     if res.get("errors"):
       BugTracker().handle_exception(CrawlError, res["errors"][0])
+      print "got CrawlError : ", res["errors"][0]
       sys.exit("got CrawlError")
 
     return res["items"]

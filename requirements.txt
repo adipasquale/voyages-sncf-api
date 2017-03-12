@@ -1,3 +1,4 @@
+Twisted==16.6
 -e git://github.com/adipasquale/scrapyrt.git#egg=scrapyrt
 scrapy==1.0.4
 requests==2.9.1

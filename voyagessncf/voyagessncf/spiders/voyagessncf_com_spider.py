@@ -114,8 +114,9 @@ class VoyagesSncfComSpider(scrapy.Spider):
       yield offer
 
   def parse_params(self, params):
-    if params.get("departure_date") == datetime.now().strftime("%d/%m/%Y"):
-      params.setdefault("departure_hour", datetime.now().hour)
+    now = datetime.now(pytz.timezone("Europe/Paris"))
+    if params.get("departure_date") == now.strftime("%d/%m/%Y"):
+      params.setdefault("departure_hour", now.hour)
     else:
       params.setdefault("departure_hour", 6)
 
