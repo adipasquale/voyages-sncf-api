@@ -1,4 +1,4 @@
-sncf.lol
+Voyages-SNCF API
 ========
 
 a scrapyrt API to retrieve data from voyages-sncf.mobi website
