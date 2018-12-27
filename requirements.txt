@@ -1,7 +1,7 @@
 Twisted==16.6
 -e git://github.com/adipasquale/scrapyrt.git#egg=scrapyrt
 scrapy==1.0.4
-requests==2.9.1
+requests>=2.20.0
 pytz==2015.7
 python-dateutil==2.6.0
 airtable==0.3.1
